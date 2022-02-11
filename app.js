@@ -1,15 +1,22 @@
-const argon2 = require('argon2');
-const app = express();
 const express = require('express');
-
-const database = [{ id: 1, username: 'abc', password: 'abcdd' }];
+const cookieParser = require('cookie-parser');
+const jwt = require('jsonwebtoken');
+const argon2 = require('argon2');
+const { validUser } = require('./middleware/auth');
+const database = require('./database');
+const app = express();
 
 app.use(express.json());
+app.use(cookieParser());
 app.use(express.urlencoded({ extended: false }));
 
 // 유저 정보 가져오기
-app.get('/users', function (req, res) {
+app.get('/users', (req, res) => {
   res.send(database);
+});
+
+app.get('/secure_data', validUser, (req, res) => {
+  res.send('인증된 사용자만 쓸 수 있는 API');
 });
 
 // 회원가입
@@ -40,5 +47,14 @@ app.post('/login', async (req, res) => {
     res.status(403).send('패스워드가 틀립니다'); // 앞이 4이면 클라이언트 잘못, 5는 서버 문제
     return;
   }
-  res.send('로그인 성공');
+  const access_token = jwt.sign({ username }, 'secure');
+  console.log(access_token);
+  res.cookie('access_token', access_token, {
+    httpOnly: true, // 클라이언트에서 토큰을 읽을수 없게 함
+  });
+  res.send('로그인 성공12');
+});
+
+app.listen(3000, () => {
+  console.log('Sucess Connect');
 });
